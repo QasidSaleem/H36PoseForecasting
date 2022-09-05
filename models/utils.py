@@ -44,3 +44,15 @@ class LinearBlock(nn.Module):
     
     def forward(self, x):
         return self.linear_block(x)
+
+def init_state(cell_type, rnn_dim, b_size, x):
+    if cell_type == "LSTM":
+        # type_as lightning thing
+        # refer to https://pytorch-lightning.readthedocs.io/en/latest/accelerators/accelerator_prepare.html
+        h = torch.zeros(b_size, rnn_dim).type_as(x)
+        c = torch.zeros(b_size, rnn_dim).type_as(x)
+        state = (h, c)
+    else:
+        state = torch.zeros(b_size, rnn_dim).type_as(x)
+    
+    return state

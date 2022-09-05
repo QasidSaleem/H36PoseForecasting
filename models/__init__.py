@@ -1,1 +1,1 @@
-from .joints import StateSpace2dJoints
+from .joints import StateSpace2dJoints, Autoregressive2dJoints
