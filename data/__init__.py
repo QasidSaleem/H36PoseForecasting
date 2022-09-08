@@ -1,1 +1,1 @@
-from .torch_datasets import Human2dJoints
+from .torch_datasets import Human2dJoints, HumanHeatmaps
