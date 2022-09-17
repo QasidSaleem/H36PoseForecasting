@@ -10,6 +10,7 @@ class Human2dJoints(Dataset):
         s_fname="scaler.joblib",
         s_type="normalize",
         n_seqs=20,
+        **kwargs
     ):
         self.sequences_matrix = prepare_2d_data(
            data_file=data_file,
@@ -32,6 +33,7 @@ class HumanHeatmaps(Dataset):
         self,
         data_file,
         n_seqs=20,
+        **kwargs
     ):
         self.sequences_matrix = prepare_2d_data(
            data_file=data_file,
