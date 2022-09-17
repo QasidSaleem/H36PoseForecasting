@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import random
 
 from .utils import get_dropout, get_act
 from .utils import LinearBlock, init_state
@@ -104,6 +105,7 @@ class Autoregressive2dJoints(nn.Module):
         rnn_dim=64,
         residual_step=True,
         n_seeds=10,
+        teacher_forcing_ratio=0, # Teacher Forcing by default False
         **kwargs
     ):
         super().__init__()
@@ -124,6 +126,7 @@ class Autoregressive2dJoints(nn.Module):
         self.rnn_dim = rnn_dim
         self.residual_step = residual_step
         self.n_seeds = n_seeds
+        self.teacher_forcing_ratio = teacher_forcing_ratio
     
     def forward(self, x):
         b_size, n_seqs, n_joints = x.shape
@@ -144,12 +147,24 @@ class Autoregressive2dJoints(nn.Module):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0] if self.cell_type == "LSTM" else states[j]
         
-        dec_out = self.decoder(rnn_input)
-        rnn_input = self.encoder(dec_out)
+        
+        use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
+
+        # For teacher forcing applying encoder to the remaining frames
+        if use_teacher_forcing:
+            rnn_dec_embeddings = self.encoder(x[:, self.n_seeds:, :])
+        else:
+            # Using the last ouput of the encoder step as decoder input
+            dec_out = self.decoder(rnn_input)
 
         outs = []
         # Decoding Steps
         for i in range(n_seqs - self.n_seeds):
+            if use_teacher_forcing:
+                rnn_input = rnn_dec_embeddings[:, i, :]
+            else:
+                rnn_input = self.encoder(dec_out)
+
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0] if self.cell_type == "LSTM" else states[j]
@@ -167,6 +182,5 @@ class Autoregressive2dJoints(nn.Module):
             outs.append(
                 final_out
             )
-            rnn_input = self.encoder(dec_out)
 
         return torch.stack(outs, dim=1)

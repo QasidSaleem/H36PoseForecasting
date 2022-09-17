@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import random
 
 from .utils import init_state_hm, ConvLSTMCell
 from .utils import EncoderBlock, DecoderBlock
@@ -129,6 +130,7 @@ class AutoregressiveHeatmaps(nn.Module):
         residual_step=True,
         n_seeds=10,
         use_batched_input=False, # Check forward method for explanation
+        teacher_forcing_ratio=0, # Teacher Forcing by default False
         **kwargs
     ):
         super().__init__()
@@ -161,24 +163,31 @@ class AutoregressiveHeatmaps(nn.Module):
         self.residual_step = residual_step
         self.n_seeds = n_seeds
         self.use_batched_input = use_batched_input
+        self.teacher_forcing_ratio = teacher_forcing_ratio
+
     
     def forward(self, x):
         b_size, n_seqs, n_joints, height, width = x.shape
+        use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
         # nn.conv2d expects 4D batch tensor but we have 5D tensor
         # using for loop over batch will be a bit slower at the same reshaping tensor
         # passing to encoder for a larger batch size will not fit gpu memory
         if self.use_batched_input:
-            embeddings = self.encoder(torch.flatten(x[:, 0:self.n_seeds, :, :, :], start_dim=0, end_dim=1))
+            embeddings = self.encoder(torch.flatten(
+                x if use_teacher_forcing else x[:, 0:self.n_seeds, :, :, :],
+                start_dim=0,
+                end_dim=1)
+            )
             embeddings = embeddings.reshape(
                 b_size,
-                self.n_seeds,
+                n_seqs if use_teacher_forcing else self.n_seeds,
                 embeddings.shape[1],
                 embeddings.shape[2],
                 embeddings.shape[3]
             )
         else:
             embeddings = torch.stack([
-                self.encoder(x[:,i,:,:,:]) for i in range(self.n_seeds)
+                self.encoder(x[:,i,:,:,:]) for i in range(n_seqs if use_teacher_forcing else self.n_seeds)
             ], dim=1)
         
         # initial input of rnn
@@ -193,13 +202,17 @@ class AutoregressiveHeatmaps(nn.Module):
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0]
-        
-        dec_out = self.decoder(rnn_input)
-        rnn_input = self.encoder(dec_out)
+
+        if not use_teacher_forcing:
+            dec_out = self.decoder(rnn_input)
 
         outs = []
         # Decoding Steps
         for i in range(n_seqs - self.n_seeds):
+            if use_teacher_forcing:
+                rnn_input = embeddings[:, self.n_seeds+i, :, :, :]
+            else:
+                rnn_input = self.encoder(dec_out)
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0]
@@ -217,6 +230,5 @@ class AutoregressiveHeatmaps(nn.Module):
             outs.append(
                 final_out
             )
-            rnn_input = self.encoder(dec_out)
 
         return torch.stack(outs, dim=1)
