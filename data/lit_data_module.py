@@ -32,11 +32,25 @@ class Human36_data_module(pl.LightningDataModule):
         dataset_name = self.args["config"]["data"].get("dataset")
 
         if "joints" in dataset_name:
-            self.data_train = Human2dJoints(mode="train", **self.args["config"]["data"])
-            self.data_val = Human2dJoints(mode="test", **self.args["config"]["data"])
+            self.data_train = Human2dJoints(
+                data_file=self.args["config"]["data"]["train_file"],
+                mode="train",
+                **self.args["config"]["data"]
+            )
+            self.data_val = Human2dJoints(
+                data_file=self.args["config"]["data"]["valid_file"],
+                mode="test",
+                **self.args["config"]["data"]
+            )
         elif "heatmaps" in dataset_name:
-            self.data_train = HumanHeatmaps(**self.args["config"]["data"])
-            self.data_val = HumanHeatmaps(**self.args["config"]["data"])
+            self.data_train = HumanHeatmaps(
+                data_file=self.args["config"]["data"]["train_file"],
+                **self.args["config"]["data"]
+            )
+            self.data_val = HumanHeatmaps(
+                data_file=self.args["config"]["data"]["valid_file"],
+                **self.args["config"]["data"]
+            )
 
     def train_dataloader(self):
         return DataLoader(
