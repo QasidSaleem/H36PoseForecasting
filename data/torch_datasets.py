@@ -1,4 +1,4 @@
-from utils import prepare_2d_data, generate_heatmaps
+from .utils import prepare_2d_data, generate_heatmaps
 from torch.utils.data import Dataset
 
 class Human2dJoints(Dataset):

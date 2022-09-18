@@ -1,10 +1,7 @@
 """Lightning Model."""
 import pytorch_lightning as pl
 import torch
-OPTIMIZER = "Adam"
-LR = 1e-3
-LOSS = "MSELoss"
-ONE_CYCLE_TOTAL_STEPS = 100
+
 
 class LitModule(pl.LightningModule):
     """
@@ -15,16 +12,16 @@ class LitModule(pl.LightningModule):
         self.model = model
         self.args = args
 
-        optimizer = self.args.get("optimizer", OPTIMIZER)
+        optimizer = self.args.get("optimizer")
         self.optimizer_class = getattr(torch.optim, optimizer)
 
-        self.lr = self.args.get("lr", LR)
+        self.lr = self.args.get("lr")
 
-        loss = self.args.get("loss", LOSS)
+        loss = self.args.get("loss")
         self.loss_fn = getattr(torch.nn, loss)
 
         self.one_cycle_max_lr = self.args.get("one_cycle_max_lr", None)
-        self.one_cycle_total_steps = self.args.get("one_cycle_total_steps", ONE_CYCLE_TOTAL_STEPS)
+        self.one_cycle_total_steps = self.args.get("one_cycle_total_steps")
     
     def configure_optimizers(self):
         optimizer = self.optimizer_class(self.parameters(), lr=self.lr)
@@ -77,9 +74,3 @@ class LitModule(pl.LightningModule):
             self.log(f"test_{k}", v, batch_size=pred.shape[0], on_step=False, on_epoch=True, prog_bar=False)
         
         return loss
-
-
-
-
-
-

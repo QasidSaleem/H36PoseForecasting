@@ -14,12 +14,7 @@ from .torch_datasets import Human2dJoints, HumanHeatmaps
 
 # Default arguments
 BATCH_SIZE = 128
-NUM_AVAIL_CPUS = len(os.sched_getaffinity(0))
-NUM_AVAIL_GPUS = torch.cuda.device_count()
-DEFAULT_NUM_WORKERS = NUM_AVAIL_CPUS
-DEFAULT_NUM_WORKERS = NUM_AVAIL_CPUS // NUM_AVAIL_GPUS if NUM_AVAIL_GPUS else DEFAULT_NUM_WORKERS
 SHUFFLE_DATA = True
-PINMEMORY = False
 
 class Human36_data_module(pl.LightningDataModule):
     """Lightning data class
@@ -28,20 +23,20 @@ class Human36_data_module(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()
         self.args = args
-        self.batch_size = self.args.get("batch_size", BATCH_SIZE)
-        self.num_workers = self.args.get("num_workers", DEFAULT_NUM_WORKERS)
-        self.shuffle_data = self.args.get("shuffle_data", SHUFFLE_DATA)
-        self.pin_mem = self.args.get("pin_memory", PINMEMORY)
+        self.batch_size = self.args["config"]["data"].get("batch_size", BATCH_SIZE)
+        self.num_workers = self.args.get("num_workers")
+        self.shuffle_data = self.args["config"]["data"].get("shuffle_data", SHUFFLE_DATA)
+        self.pin_mem = self.args.get("pin_memory")
     
     def setup(self, stage=None):
-        dataset_name = self.args.get("dataset")
+        dataset_name = self.args["config"]["data"].get("dataset")
 
         if "joints" in dataset_name:
-            self.data_train = Human2dJoints(mode="train", **self.args)
-            self.data_val = Human2dJoints(mode="test", **self.args)
+            self.data_train = Human2dJoints(mode="train", **self.args["config"]["data"])
+            self.data_val = Human2dJoints(mode="test", **self.args["config"]["data"])
         elif "heatmaps" in dataset_name:
-            self.data_train = HumanHeatmaps(**self.args)
-            self.data_val = HumanHeatmaps(**self.args)
+            self.data_train = HumanHeatmaps(**self.args["config"]["data"])
+            self.data_val = HumanHeatmaps(**self.args["config"]["data"])
 
     def train_dataloader(self):
         return DataLoader(
