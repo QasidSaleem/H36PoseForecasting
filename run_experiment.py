@@ -4,6 +4,7 @@ import sys
 
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning import loggers as pl_loggers
 import torch
 
 from utils import setup_data_and_model_from_args, get_callbacks
@@ -15,6 +16,10 @@ pl.seed_everything(constants.SEED)
 
 NUM_AVAIL_CPUS = len(os.sched_getaffinity(0))
 NUM_AVAIL_GPUS = torch.cuda.device_count()
+if NUM_AVAIL_GPUS:
+    ACCELERATOR = "gpu"
+else:
+    ACCELERATOR = None
 DEFAULT_NUM_WORKERS = NUM_AVAIL_CPUS
 DEFAULT_NUM_WORKERS = NUM_AVAIL_CPUS // NUM_AVAIL_GPUS if NUM_AVAIL_GPUS else DEFAULT_NUM_WORKERS
 
@@ -59,6 +64,8 @@ def _setup_parser():
                             "train_loss"
                         ], help="monitor for early stopping/checkpointing")
     parser.add_argument("--exp_name", type=str, help="experiment name")
+    parser.add_argument("--accelerator", type=str, default=ACCELERATOR, help="accelerator")
+    parser.add_argument("--devices", type=int, default=NUM_AVAIL_GPUS, help="number of devices")
     parser.add_argument(
         "--num_workers",
         type=int,
@@ -79,6 +86,20 @@ def _run_experiment(args):
         + f'{args["config"]["data"]["dataset"]}/' \
         + f'{args["config"]["model"]["name"]}/' \
         + f'{args["exp_name"]}'
+    
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir=logdir)
+    data_module, lit_model, args = setup_data_and_model_from_args(args)
+    trainer = pl.Trainer(
+        deterministic=True,
+        accelerator=args["accelerator"],
+        devices=args["accelerator"] if args["accelerator"] else None,
+        max_epochs=args["num_epochs"],
+        callbacks=callbacks,
+        logger=tb_logger,
+        log_every_n_steps=constants.LOG_STEPS,
+    )
+    trainer.fit(lit_model, data_module)
+
 
 def main():
     parser = _setup_parser()

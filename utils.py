@@ -46,7 +46,7 @@ def setup_data_and_model_from_args(args):
     data_module = get_data_module(args)
     model = get_model(args)
     lit_model = get_lit_model(model, args)
-    return data_module, lit_model
+    return data_module, lit_model, args
 
 def get_callbacks(args):
     filename = f""\
