@@ -13,3 +13,4 @@ logs/
 *.out_
 *.pkl
 *.joblib
+data_folder/
