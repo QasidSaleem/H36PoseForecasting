@@ -31,7 +31,7 @@ def prepare_config(args):
     return args
 
 def get_data_module(args):
-    return Human36_data_module(**args)
+    return Human36_data_module(args=args)
 
 def get_model(args):
     module = importlib.import_module(constants.MODEL_CLASS_MODULE)

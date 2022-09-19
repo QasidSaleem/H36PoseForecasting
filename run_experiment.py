@@ -12,7 +12,7 @@ import constants
 
 np.random.seed(constants.SEED)
 torch.manual_seed(constants.SEED)
-pl.seed_everything(constants.SEED)
+pl.seed_everything(constants.SEED, workers=True)
 
 NUM_AVAIL_CPUS = len(os.sched_getaffinity(0))
 NUM_AVAIL_GPUS = torch.cuda.device_count()
@@ -39,7 +39,7 @@ def _setup_parser():
         "--lr", type=float, default=constants.LR, help="Learning Rate"
     )
     parser.add_argument("--loss", type=str,
-                        default=constants.LR, choices=[
+                        default=constants.LOSS, choices=[
                             "MSELoss",
                             "L1LOSS"
                         ], help="Loss Function")
@@ -65,7 +65,7 @@ def _setup_parser():
                         ], help="monitor for early stopping/checkpointing")
     parser.add_argument("--exp_name", type=str, help="experiment name")
     parser.add_argument("--accelerator", type=str, default=ACCELERATOR, help="accelerator")
-    parser.add_argument("--devices", type=int, default=NUM_AVAIL_GPUS, help="number of devices")
+    parser.add_argument("--devices", type=int, default=None, help="number of devices")
     parser.add_argument(
         "--num_workers",
         type=int,
@@ -77,10 +77,10 @@ def _setup_parser():
         type=str,
         default=constants.PINMEMORY,
         help="pin memory for dataloader")
-    parser.add_argument("--help", "-h", action="help")
     return parser
 
 def _run_experiment(args):
+    data_module, lit_model, args = setup_data_and_model_from_args(args)
     callbacks = get_callbacks(args)
     logdir = f'{constants.WORKING_DIR}/{constants.LOG_DIR}/' \
         + f'{args["config"]["data"]["dataset"]}/' \
@@ -88,17 +88,16 @@ def _run_experiment(args):
         + f'{args["exp_name"]}'
     
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=logdir)
-    data_module, lit_model, args = setup_data_and_model_from_args(args)
     trainer = pl.Trainer(
         deterministic=True,
         accelerator=args["accelerator"],
-        devices=args["accelerator"] if args["accelerator"] else None,
+        devices=args["devices"] if args["devices"] else constants.DEVICES,
         max_epochs=args["num_epochs"],
         callbacks=callbacks,
         logger=tb_logger,
         log_every_n_steps=constants.LOG_STEPS,
     )
-    trainer.fit(lit_model, data_module)
+    # trainer.fit(lit_model, data_module)
 
 
 def main():

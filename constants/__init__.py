@@ -1,5 +1,5 @@
 SEED = 42   # For having reproducible experiments
-WORKING_DIR = "./"
+WORKING_DIR = "."
 DATA_DIR = f"{WORKING_DIR}/data_dir"
 OPTIMIZER = "Adam"
 LR = 1e-3
@@ -11,3 +11,4 @@ MODEL_CLASS_MODULE = "models"
 LOG_STEPS = 5
 PINMEMORY = False
 LOG_DIR = "logs"
+DEVICES = 1
