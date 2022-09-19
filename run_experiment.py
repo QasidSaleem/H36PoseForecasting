@@ -97,7 +97,7 @@ def _run_experiment(args):
         logger=tb_logger,
         log_every_n_steps=constants.LOG_STEPS,
     )
-    # trainer.fit(lit_model, data_module)
+    trainer.fit(lit_model, data_module)
 
 
 def main():
