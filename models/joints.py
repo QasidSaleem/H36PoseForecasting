@@ -64,33 +64,35 @@ class StateSpace2dJoints(nn.Module):
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0] if self.cell_type == "LSTM" else states[j]
-        if self.decoder_fixed_input:
-            rnn_input = torch.zeros_like(embeddings[:, 0, :]).type_as(embeddings[:, 0, :])
         
         outs = []
+        # Last output of encoder stage represents the first prediction
+        dec_out = self.decoder(rnn_input)
+        # Residual connection between time steps
+        if self.residual_step:
+            outs.append(
+                dec_out + x[:, self.n_seeds-1, :]
+            )
+        else:
+            outs.append(dec_out)
+        
         # Decoding Steps
-        for i in range(n_seqs - self.n_seeds):
+        for i in range(n_seqs - self.n_seeds - 1):
+            if self.decoder_fixed_input:
+                rnn_input = torch.zeros_like(embeddings[:, 0, :]).type_as(embeddings[:, 0, :])
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0] if self.cell_type == "LSTM" else states[j]
             dec_out = self.decoder(rnn_input)
-            # Residual connection between time step
+            # Residual connection between time steps
             if self.residual_step:
-                if i == 0:
-                    final_out = dec_out + x[:, self.n_seeds-1, :]
-                else:
-                    final_out = dec_out + outs[-1]
+                final_out = dec_out + outs[-1]
             else:
                 final_out = dec_out
             
             outs.append(
                 final_out
             )
-            
-
-            if self.decoder_fixed_input:
-                rnn_input = torch.zeros_like(embeddings[:, 0, :]).type_as(embeddings[:, 0, :])
-        
         return torch.stack(outs, dim=1)
 
 
@@ -146,36 +148,40 @@ class Autoregressive2dJoints(nn.Module):
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0] if self.cell_type == "LSTM" else states[j]
-        
-        
+    
+        outs = []
+        # Last output of encoder stage represents the first prediction
+        dec_out = self.decoder(rnn_input)
+        # Residual connection between time steps
+        if self.residual_step:
+            outs.append(
+                dec_out + x[:, self.n_seeds-1, :]
+            )
+        else:
+            outs.append(dec_out)
+
         use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
 
         # For teacher forcing applying encoder to the remaining frames
+        # Don't make prediction on the last frame
         if use_teacher_forcing:
-            rnn_dec_embeddings = self.encoder(x[:, self.n_seeds:, :])
-        else:
-            # Using the last ouput of the encoder step as decoder input
-            dec_out = self.decoder(rnn_input)
+            rnn_dec_embeddings = self.encoder(x[:, self.n_seeds:(n_seqs-1), :])
 
-        outs = []
         # Decoding Steps
-        for i in range(n_seqs - self.n_seeds):
+        for i in range(n_seqs - self.n_seeds - 1):
             if use_teacher_forcing:
                 rnn_input = rnn_dec_embeddings[:, i, :]
             else:
-                rnn_input = self.encoder(dec_out)
+                rnn_input = self.encoder(outs[-1])
 
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0] if self.cell_type == "LSTM" else states[j]
             
             dec_out = self.decoder(rnn_input)
-            # Residual connection between time step
+            # Residual connection between time steps
             if self.residual_step:
-                if i == 0:
-                    final_out = dec_out + x[:, self.n_seeds-1, :]
-                else:
-                    final_out = dec_out + outs[-1]
+                final_out = dec_out + outs[-1]
             else:
                 final_out = dec_out
             

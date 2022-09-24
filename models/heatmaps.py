@@ -7,7 +7,6 @@ from .utils import init_state_hm, ConvLSTMCell
 from .utils import EncoderBlock, DecoderBlock
 from .utils import ResNetEncoder, ResNetDecoder
 
-
 class StateSpaceHeatmaps(nn.Module):
     """"""
     def __init__(
@@ -92,31 +91,35 @@ class StateSpaceHeatmaps(nn.Module):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0]
         
-        if self.decoder_fixed_input:
-            rnn_input = torch.zeros_like(embeddings[:, 0, :, :, :]).type_as(embeddings)
-        
         outs = []
+        # Last output of encoder stage represents the first prediction
+        dec_out = self.decoder(rnn_input)
+        # Residual connection between time steps
+        if self.residual_step:
+            outs.append(
+                dec_out + x[:, self.n_seeds-1, :, :, :]
+            )
+        else:
+            outs.append(dec_out)
+        
         # Decoding Steps
-        for i in range(n_seqs - self.n_seeds):
+        for i in range(n_seqs - self.n_seeds - 1):
+            if self.decoder_fixed_input:
+                rnn_input = torch.zeros_like(embeddings[:, 0, :, :, :]).type_as(embeddings)
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0]
             dec_out = self.decoder(rnn_input)
-            # Residual connection between time step
+            # Residual connection between time steps
             if self.residual_step:
-                if i == 0:
-                    final_out = dec_out + x[:, self.n_seeds-1, :, :, :]
-                else:
-                    final_out = dec_out + outs[-1]
-                
+                final_out = dec_out + outs[-1]
+            else:
+                final_out = dec_out
             outs.append(
                 final_out
             )
-            if self.decoder_fixed_input:
-                rnn_input = torch.zeros_like(embeddings[:, 0, :, :, :]).type_as(embeddings)
-        
-        return torch.stack(outs, dim=1)
 
+        return torch.stack(outs, dim=1)
 
 class AutoregressiveHeatmaps(nn.Module):
     """"""
@@ -198,32 +201,36 @@ class AutoregressiveHeatmaps(nn.Module):
         )
         # Encoding Steps
         for i in range(self.n_seeds):
-            rnn_input = embeddings[:,i, :, :, :]
+            rnn_input = embeddings[:, i, :, :, :]
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0]
 
-        if not use_teacher_forcing:
-            dec_out = self.decoder(rnn_input)
-
         outs = []
+        # Last output of encoder stage represents the first prediction
+        dec_out = self.decoder(rnn_input)
+        # Residual connection between time steps
+        if self.residual_step:
+            outs.append(
+                dec_out + x[:, self.n_seeds-1, :, :, :]
+            )
+        else:
+            outs.append(dec_out)
+            
         # Decoding Steps
-        for i in range(n_seqs - self.n_seeds):
+        for i in range(n_seqs - self.n_seeds - 1):
             if use_teacher_forcing:
                 rnn_input = embeddings[:, self.n_seeds+i, :, :, :]
             else:
-                rnn_input = self.encoder(dec_out)
+                rnn_input = self.encoder(outs[-1])
             for j, rnn_cell in enumerate(self.rnn_cells):
                 states[j] = rnn_cell(rnn_input, states[j])
                 rnn_input = states[j][0]
             
             dec_out = self.decoder(rnn_input)
-            # Residual connection between time step
+            # Residual connection between time steps
             if self.residual_step:
-                if i == 0:
-                    final_out = dec_out + x[:, self.n_seeds-1, :, :, :]
-                else:
-                    final_out = dec_out + outs[-1]
+                final_out = dec_out + outs[-1]
             else:
                 final_out = dec_out
             
