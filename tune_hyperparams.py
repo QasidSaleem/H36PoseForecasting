@@ -35,7 +35,7 @@ def _setup_parser():
     parser.add_argument("--num_epochs", type=int,
                         default=100, help="number of epochs")
     parser.add_argument("--num_samples", type=int,
-                        default=10, help="number of trials")
+                        default=2, help="number of trials")
     parser.add_argument(
         "--optimizer", type=str, default=constants.OPTIMIZER, help="Optimizer"
     )
@@ -48,10 +48,12 @@ def _setup_parser():
     parser.add_argument("--exp_name", type=str, help="experiment name")
     parser.add_argument("--accelerator", type=str, default=ACCELERATOR, help="accelerator")
     parser.add_argument("--devices", type=int, default=None, help="number of devices")
+    # parser.add_argument("--cpu_per_trail", type=int, default=2, help="number of cpus per trail")
+    parser.add_argument("--gpu_per_trail", type=int, default=1, help="number of gpus per trail")
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=DEFAULT_NUM_WORKERS,
+        default=2,
         help="Number of workers for dataloaders"
     )
     parser.add_argument(
@@ -82,7 +84,7 @@ def train_func(config, args):
     trainer = pl.Trainer(
         deterministic=True,
         accelerator=args["accelerator"],
-        devices=args["devices"] if args["devices"] else constants.DEVICES,
+        devices=args["gpu_per_trail"],
         max_epochs=args["num_epochs"],
         logger=tb_logger,
         log_every_n_steps=constants.LOG_STEPS,
@@ -101,6 +103,7 @@ def train_func(config, args):
 
 def tune_fun(args):
     args = prepare_config(args)
+    print("args:", args)
     hyper_config = HYPERPARAM_CONFIGS[args['config']['model']['name']]
     scheduler = ASHAScheduler(
         max_t=args["num_epochs"],
@@ -115,7 +118,7 @@ def tune_fun(args):
         train_func,
         args=args
     )
-    resources_per_trial = {"cpu": NUM_AVAIL_CPUS, "gpu": NUM_AVAIL_GPUS}
+    resources_per_trial = {"cpu": args["num_workers"], "gpu": args["gpu_per_trail"]}
     tuner = tune.Tuner(
         tune.with_resources(
            train_fn_with_parameters,
@@ -133,6 +136,7 @@ def tune_fun(args):
         ),
         param_space=hyper_config,
     )
+    print(f"Execution start with config:{hyper_config}")
     results = tuner.fit()
     print("Best hyperparameters found were: ", results.get_best_result().config)
 
