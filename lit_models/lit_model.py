@@ -53,7 +53,7 @@ class LitModule(pl.LightningModule):
         logs["loss"] = loss
 
         for k,v in logs.items():
-            self.log(f"train_{k}", v, batch_size=pred.shape[0], on_step=True, on_epoch=True, prog_bar=True)
+            self.log(f"train_{k}", v, batch_size=pred.shape[0], on_step=True, on_epoch=True, prog_bar=False)
         
         return loss
     
@@ -63,7 +63,7 @@ class LitModule(pl.LightningModule):
         logs["loss"] = loss
         for k,v in logs.items():
             prog_bar = True if k == "loss" else False
-            self.log(f"val_{k}", v, batch_size=pred.shape[0], on_step=False, on_epoch=True, prog_bar=prog_bar)
+            self.log(f"val_{k}", v, batch_size=pred.shape[0], on_step=False, on_epoch=True, prog_bar=False)
         
         return loss
     
