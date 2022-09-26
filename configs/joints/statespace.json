@@ -19,6 +19,6 @@
         "s_type": "normalize",
         "n_seqs": 20,
         "batch_size": 64,
-        "shuffle_data": false
+        "shuffle_data": true
     }
 }
