@@ -14,7 +14,7 @@ HYPERPARAM_CONFIGS = {
         },
         "parameters": {
             "lr": {
-                "distribution": "log_uniform",
+                "distribution": "log_uniform_values",
                 "min": 1e-5,
                 "max": 1e-2
             },
@@ -30,7 +30,47 @@ HYPERPARAM_CONFIGS = {
             "batch_size":{
                 "values": [32, 64, 128]
             },
+            "cell_type": {
+                "values": ["LSTM", "GRU"]
+            }
+        },
+        "early_terminate": {
+            "type": "hyperband",
+            "min_iter": 3
 
+        }       
+    },
+    "Autoregressive2dJoints":{
+
+        "method": "random",
+        "metric": {
+            "name": "val_loss",
+            "goal": "minimize"
+        },
+        "parameters": {
+            "lr": {
+                "distribution": "log_uniform_values",
+                "min": 1e-5,
+                "max": 1e-2
+            },
+            "encoder_layers":{
+                "values": [32, 64, 128]
+            },
+            "n_cells":{
+                "values": [1, 2]
+            },
+            "rnn_dim":{
+                "values": [32, 64, 128, 256]
+            },
+            "batch_size": {
+                "values": [32, 64, 128]
+            },
+            "teacher_forcing_ratio":{
+                "values": [0, 0.5]
+            },
+            "cell_type": {
+                "values": ["LSTM", "GRU"]
+            }
         },
         "early_terminate": {
             "type": "hyperband",

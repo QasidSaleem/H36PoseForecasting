@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import gc
+import functools
 
 import numpy as np
 import pytorch_lightning as pl
@@ -71,12 +72,15 @@ def _setup_parser():
     return parser
 
 
-def train_fun(config=None):
-    with wandb.init(config=config):
-        global args
+def train_fun(config=None, args=None):
+    with wandb.init(config=config, project=args["project_name"]):
+        # global args
+
         np.random.seed(constants.SEED)
         torch.manual_seed(constants.SEED)
         pl.seed_everything(constants.SEED, workers=True)
+        # print(type(config), config)
+        config = wandb.config
         for k,v in config.items():
             if k in ["encoder_layers", "enc_layers_ch"]:
                 args["config"]["model"][k] = [v]
@@ -127,5 +131,11 @@ def main():
     args = prepare_config(args)
     if not args["sweep_id"]:
         sweep_id = wandb.sweep(HYPERPARAM_CONFIGS[args['config']['model']['name']], project=args["project_name"])
+    else:
+        sweep_id = args["sweep_id"]
     print(f"sweep_id = {sweep_id}")
-    wandb.agent(sweep_id, function=train_fun, count=args["num_runs"])
+    training_function = functools.partial(train_fun, args=args)
+    wandb.agent(sweep_id, function=training_function, count=args["num_runs"])
+
+if __name__ == "__main__":
+    main()
