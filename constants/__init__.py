@@ -1,6 +1,6 @@
 SEED = 42   # For having reproducible experiments
-WORKING_DIR = "."
-DATA_DIR = f"{WORKING_DIR}/data_dir"
+WORKING_DIR = "/scratch/ws/0/qasa695d-intellilung/cudalab/H36PoseForecasting"
+DATA_DIR = f"{WORKING_DIR}/data_folder"
 OPTIMIZER = "Adam"
 LR = 1e-3
 LOSS = "MSELoss"

@@ -36,6 +36,12 @@ def _setup_parser():
         "--optimizer", type=str, default=constants.OPTIMIZER, help="Optimizer"
     )
     parser.add_argument(
+        "--wandb",
+        action="store_true",
+        default=False,
+        help="If passed, logs experiment results to Weights & Biases. Otherwise logs only to local Tensorboard.",
+    )
+    parser.add_argument(
         "--lr", type=float, default=constants.LR, help="Learning Rate"
     )
     parser.add_argument("--loss", type=str,
@@ -77,6 +83,13 @@ def _setup_parser():
         type=str,
         default=constants.PINMEMORY,
         help="pin memory for dataloader")
+    
+    parser.add_argument(
+        "--project_name",
+        type=str,
+        default="CUDALAB",
+        help="W and b Sweep id")
+
     return parser
 
 def _run_experiment(args):
@@ -87,14 +100,29 @@ def _run_experiment(args):
         + f'{args["config"]["model"]["name"]}/' \
         + f'{args["exp_name"]}'
     
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir=logdir)
+    # logger = pl_loggers.TensorBoardLogger(save_dir=logdir)
+    
+    if args["wandb"]:
+        logger = pl_loggers.WandbLogger(
+            project=args["project_name"],
+            name=args["exp_name"],
+            # log_model="all",
+            save_dir=logdir,
+            job_type="train",
+            log_model=False,
+
+        )
+        # logger.watch(lit_model, log_freq=max(100, constants.LOG_STEPS))
+        logger.log_hyperparams(args["config"]["model"])
+    else: 
+        logger = pl_loggers.TensorBoardLogger(save_dir=logdir)
     trainer = pl.Trainer(
         deterministic=True,
         accelerator=args["accelerator"],
         devices=args["devices"] if args["devices"] else constants.DEVICES,
         max_epochs=args["num_epochs"],
         callbacks=callbacks,
-        logger=tb_logger,
+        logger=logger,
         log_every_n_steps=constants.LOG_STEPS,
     )
     trainer.fit(lit_model, data_module, ckpt_path=args["load_checkpoint"])

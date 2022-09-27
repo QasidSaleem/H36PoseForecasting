@@ -23,11 +23,13 @@ def prepare_config(args):
     """Adds configs data to args"""
     cfg_fname = args['config']
     args['config'] = get_config(args)
+    save_dir = f"{constants.WORKING_DIR}/checkpoints/{args['config']['data']['dataset']}/{args['config']['model']['name']}/{args['exp_name']}"
+    pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
     if "joints" in args["config"]["data"]['dataset']:
-        save_dir = f"{constants.WORKING_DIR}/checkpoints/{args['config']['data']['dataset']}/{args['config']['model']['name']}/{args['exp_name']}"
-        pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
         args["config"]["data"]["s_fname"] = f'{save_dir}/{args["config"]["data"]["s_fname"]}'
         shutil.copy2(cfg_fname, save_dir)
+    args["config"]["data"]["train_file"] = f'{constants.DATA_DIR}/{args["config"]["data"]["train_file"]}'
+    args["config"]["data"]["valid_file"] = f'{constants.DATA_DIR}/{args["config"]["data"]["valid_file"]}'
     return args
 
 def get_data_module(args):

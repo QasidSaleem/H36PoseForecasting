@@ -47,9 +47,9 @@ def _setup_parser():
     
     parser.add_argument("--exp_name", type=str, help="experiment name")
     parser.add_argument("--accelerator", type=str, default=ACCELERATOR, help="accelerator")
-    parser.add_argument("--devices", type=int, default=None, help="number of devices")
+    # parser.add_argument("--devices", type=int, default=None, help="number of devices")
     # parser.add_argument("--cpu_per_trail", type=int, default=2, help="number of cpus per trail")
-    parser.add_argument("--gpu_per_trail", type=int, default=1, help="number of gpus per trail")
+    parser.add_argument("--gpus_per_trail", type=int, default=0, help="number of gpus per trail")
     parser.add_argument(
         "--num_workers",
         type=int,
@@ -84,7 +84,7 @@ def train_func(config, args):
     trainer = pl.Trainer(
         deterministic=True,
         accelerator=args["accelerator"],
-        devices=args["gpu_per_trail"],
+        # devices= args["num_workers"],
         max_epochs=args["num_epochs"],
         logger=tb_logger,
         log_every_n_steps=constants.LOG_STEPS,
@@ -118,7 +118,7 @@ def tune_fun(args):
         train_func,
         args=args
     )
-    resources_per_trial = {"cpu": args["num_workers"], "gpu": args["gpu_per_trail"]}
+    resources_per_trial = {"cpu": args["num_workers"], "gpu": args["gpus_per_trail"]}
     tuner = tune.Tuner(
         tune.with_resources(
            train_fn_with_parameters,
@@ -131,7 +131,7 @@ def tune_fun(args):
             num_samples=args["num_samples"],
         ),
         run_config=air.RunConfig(
-            name=f"tun_{args['exp_name']}",
+            name=f"tune_{args['exp_name']}",
             progress_reporter=reporter,
         ),
         param_space=hyper_config,
