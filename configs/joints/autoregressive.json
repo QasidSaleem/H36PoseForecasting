@@ -13,8 +13,8 @@
     },
     "data": {
         "dataset": "joints",
-        "train_file": "./data_folder/h36m_train.pkl",
-        "valid_file": "./data_folder/h36m_validation.pkl",
+        "train_file": "h36m_train.pkl",
+        "valid_file": "h36m_validation.pkl",
         "s_fname": "scaler.joblib",
         "s_type": "normalize",
         "n_seqs": 20,
