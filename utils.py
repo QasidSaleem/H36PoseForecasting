@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from data import Human36_data_module
+from data.utils import Scaler
 from lit_models import LitModule
 import constants
 
@@ -79,3 +80,9 @@ def get_callbacks(args):
         callbacks.append(early_stopping_callback)
     
     return callbacks
+
+def un_normalize_joints(args, predictions):
+    scaler = Scaler(args["config"]["data"]["s_fname"], mode="test")
+    
+    # TODO reshape
+    un_normalizedpredictions = scaler.scaler.inverse_transform(predictions)

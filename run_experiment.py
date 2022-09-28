@@ -88,7 +88,7 @@ def _setup_parser():
         "--project_name",
         type=str,
         default="CUDALAB",
-        help="W and b Sweep id")
+        help="W and b proj name")
 
     return parser
 

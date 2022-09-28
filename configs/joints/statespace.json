@@ -3,10 +3,10 @@
     "model": {
         "name": "StateSpace2dJoints",
         "input_dim": 34,
-        "encoder_layers": [128],
+        "encoder_layers": [64],
         "cell_type": "LSTM",
-        "n_cells": 2,
-        "rnn_dim": 256,
+        "n_cells": 1,
+        "rnn_dim": 32,
         "residual_step": true,
         "n_seeds": 10,
         "decoder_fixed_input": false
@@ -18,7 +18,7 @@
         "s_fname": "scaler.joblib",
         "s_type": "normalize",
         "n_seqs": 20,
-        "batch_size": 64,
+        "batch_size": 32,
         "shuffle_data": true
     }
 }

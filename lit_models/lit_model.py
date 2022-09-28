@@ -37,7 +37,17 @@ class LitModule(pl.LightningModule):
         return self.model(x)
     
     def predict(self, x):
-        return self.model(x)
+        teacher_forcing_ratio = 0
+        if hasattr(self.model, 'teacher_forcing_ratio'):
+            teacher_forcing_ratio = self.model.teacher_forcing_ratio
+            self.model.teacher_forcing_ratio = 0
+        preds = self.model(x)
+        if teacher_forcing_ratio:
+            self.model.teacher_forcing_ratio = teacher_forcing_ratio
+        return torch.vstack([
+            x.reshape(-1, *x.shape[2:]),
+            preds.reshape(-1, *preds.shape[2:])
+        ]).reshape(x.shape[0], -1, *x.shape[2:])
     
     def _run_on_batch(self, batch):
         pred = self(batch)
@@ -58,7 +68,14 @@ class LitModule(pl.LightningModule):
         return loss
     
     def validation_step(self, batch, batch_idx):
+        teacher_forcing_ratio = 0
+        if hasattr(self.model, 'teacher_forcing_ratio'):
+            teacher_forcing_ratio = self.model.teacher_forcing_ratio
+            self.model.teacher_forcing_ratio = 0
         pred, y, loss = self._run_on_batch(batch)
+        if teacher_forcing_ratio:
+            self.model.teacher_forcing_ratio = teacher_forcing_ratio
+
         logs = {}
         logs["loss"] = loss
         for k,v in logs.items():
