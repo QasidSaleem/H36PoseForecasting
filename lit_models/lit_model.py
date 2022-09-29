@@ -2,6 +2,8 @@
 import pytorch_lightning as pl
 import torch
 
+from .metrics import evaluate
+from .utils import un_normalize_joints, convert_heatmaps_to_skelton, SSIMLoss
 
 class LitModule(pl.LightningModule):
     """
@@ -18,8 +20,11 @@ class LitModule(pl.LightningModule):
         self.lr = self.args.get("lr")
 
         loss = self.args.get("loss")
+        if loss == "SSIMLoss":
+            self.loss_fn = SSIMLoss()
         # print("loss func", loss)
-        self.loss_fn = getattr(torch.nn, loss)()
+        else:
+            self.loss_fn = getattr(torch.nn, loss)()
 
         self.one_cycle_max_lr = self.args.get("one_cycle_max_lr", None)
         self.one_cycle_total_steps = self.args.get("one_cycle_total_steps")
@@ -36,7 +41,7 @@ class LitModule(pl.LightningModule):
     def forward(self, x):
         return self.model(x)
     
-    def predict(self, x):
+    def predict_step(self, x, batch_idx):
         teacher_forcing_ratio = 0
         if hasattr(self.model, 'teacher_forcing_ratio'):
             teacher_forcing_ratio = self.model.teacher_forcing_ratio
@@ -82,13 +87,45 @@ class LitModule(pl.LightningModule):
             prog_bar = True if k == "loss" else False
             self.log(f"val_{k}", v, batch_size=pred.shape[0], on_step=False, on_epoch=True, prog_bar=False)
         
+        if "Heatmaps" in self.args["config"]["model"]["name"]:
+            pred = convert_heatmaps_to_skelton(pred, (1002, 1000), (64, 64))
+            y = convert_heatmaps_to_skelton(y, (1002, 1000), (64, 64))
+        else:
+            pred = un_normalize_joints(self.args, pred)
+            y = un_normalize_joints(self.args, y)
+        
+        evaluation_results = evaluate(pred, y)
+        for k,v in evaluation_results.items():
+            self.log(f"val_{k}", v, batch_size=pred.shape[0], on_step=False, on_epoch=True, prog_bar=False)
+
+        
         return loss
     
     def test_step(self, batch, batch_idx):
+        teacher_forcing_ratio = 0
+        if hasattr(self.model, 'teacher_forcing_ratio'):
+            teacher_forcing_ratio = self.model.teacher_forcing_ratio
+            self.model.teacher_forcing_ratio = 0
         pred, y, loss = self._run_on_batch(batch)
+        if teacher_forcing_ratio:
+            self.model.teacher_forcing_ratio = teacher_forcing_ratio
+
         logs = {}
         logs["loss"] = loss
         for k,v in logs.items():
+            prog_bar = True if k == "loss" else False
             self.log(f"test_{k}", v, batch_size=pred.shape[0], on_step=False, on_epoch=True, prog_bar=False)
+        
+        if "Heatmaps" in self.args["config"]["model"]["name"]:
+            pred = convert_heatmaps_to_skelton(pred, (1002, 1000), (64, 64))
+            y = convert_heatmaps_to_skelton(y, (1002, 1000), (64, 64))
+        else:
+            pred = un_normalize_joints(self.args, pred)
+            y = un_normalize_joints(self.args, y)
+        
+        evaluation_results = evaluate(pred, y)
+        for k,v in evaluation_results.items():
+            self.log(f"test_{k}", v, batch_size=pred.shape[0], on_step=False, on_epoch=True, prog_bar=False)
+
         
         return loss

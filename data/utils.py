@@ -127,7 +127,7 @@ def prepare_2d_data(
 def joints_to_heatmap(
     joints,
     sigma=2,
-    image_size=np.array([1070, 872]),
+    image_size=np.array([1002, 1000]),
     heatmap_size=np.array([64, 64]),
     num_joints=17,
 ):

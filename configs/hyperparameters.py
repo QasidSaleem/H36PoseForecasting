@@ -9,8 +9,8 @@ HYPERPARAM_CONFIGS = {
 
         "method": "random",
         "metric": {
-            "name": "val_loss",
-            "goal": "minimize"
+            "name": "val_PCK",
+            "goal": "maximize"
         },
         "parameters": {
             "lr": {
@@ -32,7 +32,10 @@ HYPERPARAM_CONFIGS = {
             },
             "cell_type": {
                 "values": ["LSTM", "GRU"]
-            }
+            },
+            "loss":{
+                "values": ["MSELoss", "L1Loss"]
+            },
         },
         "early_terminate": {
             "type": "hyperband",
@@ -44,8 +47,8 @@ HYPERPARAM_CONFIGS = {
 
         "method": "random",
         "metric": {
-            "name": "val_loss",
-            "goal": "minimize"
+            "name": "val_PCK",
+            "goal": "maximize"
         },
         "parameters": {
             "lr": {
@@ -70,12 +73,88 @@ HYPERPARAM_CONFIGS = {
             },
             "cell_type": {
                 "values": ["LSTM", "GRU"]
-            }
+            },
+            "loss":{
+                "values": ["MSELoss", "L1Loss"]
+            },
         },
         "early_terminate": {
             "type": "hyperband",
             "min_iter": 3
 
         }       
-    }
+    },
+    "StateSpaceHeatmaps":{
+
+        "method": "random",
+        "metric": {
+            "name": "val_PCK",
+            "goal": "maximize"
+        },
+        "parameters": {
+            "lr": {
+                "distribution": "log_uniform_values",
+                "min": 1e-5,
+                "max": 1e-2
+            },
+            "enc_layers_ch":{
+                "values": [32, 64]
+            },
+            "n_cells":{
+                "values": [1, 2]
+            },
+            "rnn_ch":{
+                "values": [32, 64, 128]
+            },
+            "batch_size": {
+                "values": [32, 64]
+            },
+            "loss":{
+                "values": ["MSELoss", "SSIMLoss"]
+            },
+        },
+        "early_terminate": {
+            "type": "hyperband",
+            "min_iter": 3
+
+        }       
+    },
+    "AutoregressiveHeatmaps":{
+
+        "method": "random",
+        "metric": {
+            "name": "val_PCK",
+            "goal": "maximize"
+        },
+        "parameters": {
+            "lr": {
+                "distribution": "log_uniform_values",
+                "min": 1e-5,
+                "max": 1e-2
+            },
+            "enc_layers_ch":{
+                "values": [32, 64]
+            },
+            "n_cells":{
+                "values": [1, 2]
+            },
+            "rnn_ch":{
+                "values": [32, 64, 128]
+            },
+            "batch_size": {
+                "values": [32, 64]
+            },
+            "teacher_forcing_ratio":{
+                "values": [0, 0.5]
+            },
+            "loss":{
+                "values": ["MSELoss", "SSIMLoss"]
+            },
+        },
+        "early_terminate": {
+            "type": "hyperband",
+            "min_iter": 3
+
+        }       
+    },
 }

@@ -6,6 +6,7 @@ import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 import torch
+import pathlib
 
 from utils import setup_data_and_model_from_args, get_callbacks
 import constants
@@ -47,7 +48,8 @@ def _setup_parser():
     parser.add_argument("--loss", type=str,
                         default=constants.LOSS, choices=[
                             "MSELoss",
-                            "L1LOSS"
+                            "L1Loss",
+                            "SSIMLoss",
                         ], help="Loss Function")
     # Schedulers parameters
     parser.add_argument("--one_cycle_max_lr", type=float, default=None)
@@ -67,7 +69,8 @@ def _setup_parser():
     parser.add_argument("--monitor", type=str,
                         default="val_loss", choices=[
                             "val_loss",
-                            "train_loss"
+                            "train_loss",
+                            "val_PCK",
                         ], help="monitor for early stopping/checkpointing")
     parser.add_argument("--exp_name", type=str, help="experiment name")
     parser.add_argument("--accelerator", type=str, default=ACCELERATOR, help="accelerator")
@@ -103,6 +106,7 @@ def _run_experiment(args):
     # logger = pl_loggers.TensorBoardLogger(save_dir=logdir)
     
     if args["wandb"]:
+        pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
         logger = pl_loggers.WandbLogger(
             project=args["project_name"],
             name=args["exp_name"],
@@ -126,6 +130,8 @@ def _run_experiment(args):
         log_every_n_steps=constants.LOG_STEPS,
     )
     trainer.fit(lit_model, data_module, ckpt_path=args["load_checkpoint"])
+    best_model_path = callbacks[0].best_model_path
+    print("best_model_path", best_model_path)
 
 
 def main():

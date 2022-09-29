@@ -6,6 +6,7 @@ import importlib
 import pathlib
 import shutil
 
+import torch
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -81,8 +82,3 @@ def get_callbacks(args):
     
     return callbacks
 
-def un_normalize_joints(args, predictions):
-    scaler = Scaler(args["config"]["data"]["s_fname"], mode="test")
-    
-    # TODO reshape
-    un_normalizedpredictions = scaler.scaler.inverse_transform(predictions)

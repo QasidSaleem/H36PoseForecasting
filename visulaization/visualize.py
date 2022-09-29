@@ -45,4 +45,4 @@ def plot_pred_2d(
     plt.tight_layout()
     plt.subplots_adjust(wspace=0, hspace=0)
     
-    plt.show()
+    return fig

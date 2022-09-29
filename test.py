@@ -8,6 +8,8 @@ from pytorch_lightning import loggers as pl_loggers
 import torch
 from lit_models import LitModule
 
+
+from lit_models import un_normalize_joints, convert_heatmaps_to_skelton
 from utils import setup_data_and_model_from_args
 import constants
 

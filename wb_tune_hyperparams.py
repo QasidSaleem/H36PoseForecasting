@@ -39,7 +39,8 @@ def _setup_parser():
     parser.add_argument("--loss", type=str,
                         default=constants.LOSS, choices=[
                             "MSELoss",
-                            "L1LOSS"
+                            "L1Loss",
+                            "SSIMLoss",
                         ], help="Loss Function")
     
     parser.add_argument("--exp_name", type=str, help="experiment name")
@@ -84,7 +85,7 @@ def train_fun(config=None, args=None):
         for k,v in config.items():
             if k in ["encoder_layers", "enc_layers_ch"]:
                 args["config"]["model"][k] = [v]
-            if k == "lr":
+            if k in ["lr", "loss"]:
                 args[k] = v
             elif k == "batch_size":
                 args["config"]["data"][k] = v
