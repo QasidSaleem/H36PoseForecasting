@@ -1,5 +1,7 @@
 {
     "description":"basic autoregressive model",
+    "lr": 0.00856,
+    "loss": "SSIMLoss",
     "model": {
         "name": "AutoregressiveHeatmaps",
         "in_ch": 17,

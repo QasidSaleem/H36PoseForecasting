@@ -56,9 +56,12 @@ def setup_data_and_model_from_args(args):
     lit_model = get_lit_model(model, args)
     return data_module, lit_model, args
 
+def update_model_state_dict(model, ckpt_path):
+    model.load_state_dict(torch.load(ckpt_path)["state_dict"])
+
 def get_callbacks(args):
     filename = f""\
-        + "{epoch:02d} -{" \
+        + "{epoch:.2f} -{" \
         + f"{args['monitor']}" \
         + ":.2f}"
 

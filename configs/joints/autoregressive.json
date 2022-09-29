@@ -1,15 +1,17 @@
 {
     "description":"basic autoregressive model",
+    "lr": 0.004361,
+    "loss": "L1Loss",
     "model": {
         "name": "Autoregressive2dJoints",
         "input_dim": 34,
-        "encoder_layers": [128],
+        "encoder_layers": [64],
         "cell_type": "LSTM",
-        "n_cells": 2,
-        "rnn_dim": 256,
+        "n_cells": 1,
+        "rnn_dim": 64,
         "residual_step": true,
         "n_seeds": 10,
-        "teacher_forcing_ratio": 0
+        "teacher_forcing_ratio": 0.5
     },
     "data": {
         "dataset": "joints",

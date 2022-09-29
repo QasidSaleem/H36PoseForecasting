@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 import torch
+import wandb
+
 from lit_models import LitModule
-
-
 from lit_models import un_normalize_joints, convert_heatmaps_to_skelton, evaluate
 from utils import setup_data_and_model_from_args
 import constants
+from visualization import plot_pred_2d
 
 NUM_AVAIL_CPUS = len(os.sched_getaffinity(0))
 NUM_AVAIL_GPUS = torch.cuda.device_count()
@@ -22,6 +23,10 @@ else:
     ACCELERATOR = None
 DEFAULT_NUM_WORKERS = NUM_AVAIL_CPUS
 DEFAULT_NUM_WORKERS = NUM_AVAIL_CPUS // NUM_AVAIL_GPUS if NUM_AVAIL_GPUS else DEFAULT_NUM_WORKERS
+
+np.random.seed(constants.SEED)
+torch.manual_seed(constants.SEED)
+pl.seed_everything(constants.SEED, workers=True)
 
 def _setup_parser():
     parser = argparse.ArgumentParser()
@@ -81,6 +86,12 @@ def _setup_parser():
         type=str,
         default="CUDALAB",
         help="W and b project name")
+    
+    parser.add_argument(
+        "--wandb_id",
+        type=str,
+        default=None,
+        help="W and b run id to log in the same run")
 
     return parser
 
@@ -88,13 +99,16 @@ def run_test(args):
     data_module, lit_model, args = setup_data_and_model_from_args(args)
     checkpoint_path = args["checkpoint"]
     model = LitModule.load_from_checkpoint(checkpoint_path=checkpoint_path, args=args, model=lit_model.model, strict=False)
+    model.eval()
     data_module.setup()
     test_loader = data_module.val_dataloader()
     trainer = pl.Trainer(
         accelerator='gpu',
         devices=1
     )
+    print(trainer.test(model, test_loader))
     predictions = trainer.predict(model, test_loader)
+    predictions = torch.vstack(predictions)
     # scaler = data_module.data_val.
     if "Heatmaps" in args["config"]["model"]["name"]:
         predictions = convert_heatmaps_to_skelton(predictions, (1002, 1000), (64, 64))
@@ -103,21 +117,54 @@ def run_test(args):
     
     # The shape will be num_examples, 30, 17, 2
     # 30 (0:10-> seeds, 10:20-> targets, 20:-> predictions)
-    preds = predictions[:, 20:, :]
-    targets = predictions[:, 10:20, :]
 
-    eval_results = evaluate(preds, targets)
-    print("evaluation results", eval_results)
-
+    predictions = predictions.numpy()
     if args["save_visuals"]:
         image_dir = args["save_dir"]+ "/images"
         pathlib.Path(image_dir).mkdir(parents=True, exist_ok=True)
         random_indicies = np.random.randint(len(np.random.randint(2, size=10)), size=10)
         figures = []
-        for idx in random_indicies:
-            pass
-
-
-
-
+        for i, idx in enumerate(random_indicies):
+            pred_to_plot = predictions[idx]
+            seeds = pred_to_plot[0:10]
+            gt = pred_to_plot[10:20]
+            pred = pred_to_plot[20:]
+            fig = plot_pred_2d(seeds, gt, pred)
+            fig_path = f"{image_dir}/{i}.png"
+            fig.savefig(fig_path, dpi=fig.dpi)
+            figures.append(fig)
+        
+        if args["wandb"]:
+            if args["wandb_id"]:
+                wandb.init(
+                    project=args["project_name"],
+                    id=args["wandb_id"]
+                )
+        
+            else:
+                wandb.init(
+                    project=args["project_name"],
+                    name=args["exp_name"]
+                )
+            wandb.log({
+                "predictions": [
+                    wandb.Image(figures[i]) for i, _ in enumerate(figures)
+                ]
+            })
+            wandb.finish()
+    
+    if args["save_preds"]:
+        np.save(
+            f"{args['save_dir']}/predictions.npy",
+            predictions
+        )
     return predictions
+
+def main():
+    parser = _setup_parser()
+    args = parser.parse_args()
+    args = vars(args)
+    return run_test(args)
+
+if __name__ == "__main__":
+    main()

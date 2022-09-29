@@ -62,12 +62,12 @@ def _setup_parser():
     parser.add_argument("--patience", type=int,
                         default=constants.PATIENCE, help="patience for early stopping/checkpointing")
     parser.add_argument("--mode", type=str,
-                        default="min", choices=[
+                        default="max", choices=[
                             "min",
                             "max"
                         ], help="mode for early stopping/checkpointing")
     parser.add_argument("--monitor", type=str,
-                        default="val_loss", choices=[
+                        default="val_PCK", choices=[
                             "val_loss",
                             "train_loss",
                             "val_PCK",
@@ -132,6 +132,7 @@ def _run_experiment(args):
     trainer.fit(lit_model, data_module, ckpt_path=args["load_checkpoint"])
     best_model_path = callbacks[0].best_model_path
     print("best_model_path", best_model_path)
+    print("args:", args)
 
 
 def main():
