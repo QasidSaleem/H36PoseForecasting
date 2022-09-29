@@ -1,5 +1,6 @@
 import argparse
 import os
+import pathlib
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ import torch
 from lit_models import LitModule
 
 
-from lit_models import un_normalize_joints, convert_heatmaps_to_skelton
+from lit_models import un_normalize_joints, convert_heatmaps_to_skelton, evaluate
 from utils import setup_data_and_model_from_args
 import constants
 
@@ -35,19 +36,34 @@ def _setup_parser():
         "--wandb",
         action="store_true",
         default=False,
-        help="If passed, logs experiment results to Weights & Biases. Otherwise logs only to local Tensorboard.",
+        help="If passed, logs experiment results to Weights & Biases",
     )
+    parser.add_argument(
+        "--save_preds",
+        action="store_true",
+        default=False,
+        help="If passed predictions are saved as a numpy array",
+    )
+
+    parser.add_argument(
+        "--save_visuals",
+        action="store_true",
+        default=False,
+        help="If passed 10 random result images are saved",
+    )
+
     parser.add_argument(
         "--lr", type=float, default=constants.LR, help="Learning Rate"
     )
     parser.add_argument("--loss", type=str,
                         default=constants.LOSS, choices=[
                             "MSELoss",
-                            "L1LOSS"
+                            "L1Loss",
+                            "SSIMLoss"
                         ], help="Loss Function")
     parser.add_argument("--exp_name", type=str, help="experiment name")
     parser.add_argument("--accelerator", type=str, default=ACCELERATOR, help="accelerator")
-    parser.add_argument("--devices", type=int, default=None, help="number of devices")
+    parser.add_argument("--devices", type=int, default=None, help="number of gpu devices")
     parser.add_argument(
         "--num_workers",
         type=int,
@@ -64,7 +80,7 @@ def _setup_parser():
         "--project_name",
         type=str,
         default="CUDALAB",
-        help="W and b Sweep id")
+        help="W and b project name")
 
     return parser
 
@@ -80,4 +96,28 @@ def run_test(args):
     )
     predictions = trainer.predict(model, test_loader)
     # scaler = data_module.data_val.
+    if "Heatmaps" in args["config"]["model"]["name"]:
+        predictions = convert_heatmaps_to_skelton(predictions, (1002, 1000), (64, 64))
+    else:
+        predictions = un_normalize_joints(args, predictions)
+    
+    # The shape will be num_examples, 30, 17, 2
+    # 30 (0:10-> seeds, 10:20-> targets, 20:-> predictions)
+    preds = predictions[:, 20:, :]
+    targets = predictions[:, 10:20, :]
+
+    eval_results = evaluate(preds, targets)
+    print("evaluation results", eval_results)
+
+    if args["save_visuals"]:
+        image_dir = args["save_dir"]+ "/images"
+        pathlib.Path(image_dir).mkdir(parents=True, exist_ok=True)
+        random_indicies = np.random.randint(len(np.random.randint(2, size=10)), size=10)
+        figures = []
+        for idx in random_indicies:
+            pass
+
+
+
+
     return predictions

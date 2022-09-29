@@ -25,7 +25,11 @@ def prepare_config(args):
     """Adds configs data to args"""
     cfg_fname = args['config']
     args['config'] = get_config(args)
+    for k,v in args['config'].items():
+        if k in ["lr", "loss"]:
+            args[k] = v
     save_dir = f"{constants.WORKING_DIR}/checkpoints/{args['config']['data']['dataset']}/{args['config']['model']['name']}/{args['exp_name']}"
+    args["save_dir"] = save_dir
     pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
     if "joints" in args["config"]["data"]['dataset']:
         args["config"]["data"]["s_fname"] = f'{save_dir}/{args["config"]["data"]["s_fname"]}'
