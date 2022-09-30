@@ -119,6 +119,9 @@ def run_test(args):
     # 30 (0:10-> seeds, 10:20-> targets, 20:-> predictions)
 
     predictions = predictions.numpy()
+    if "Heatmaps" in args["config"]["model"]["name"]:
+        predictions = np.flip(predictions, -1).copy()
+
     if args["save_visuals"]:
         image_dir = args["save_dir"]+ "/images"
         pathlib.Path(image_dir).mkdir(parents=True, exist_ok=True)
