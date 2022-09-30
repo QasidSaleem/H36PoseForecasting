@@ -164,7 +164,7 @@ def main():
     parser = _setup_parser()
     args = parser.parse_args()
     args = vars(args)
-    return run_test(args)
+    _ =  run_test(args)
 
 if __name__ == "__main__":
     main()
